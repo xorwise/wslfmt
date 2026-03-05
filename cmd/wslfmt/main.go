@@ -38,6 +38,19 @@ func main() {
 
 	exitCode := 0
 	for _, path := range args {
+		// Handle Go-style recursive patterns like ./... or pkg/...
+		if strings.HasSuffix(path, "/...") || path == "..." {
+			dir := strings.TrimSuffix(path, "/...")
+			if dir == "" || dir == "..." {
+				dir = "."
+			}
+			if err := walkDir(dir, &exitCode); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				exitCode = 1
+			}
+			continue
+		}
+
 		info, err := os.Stat(path)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
