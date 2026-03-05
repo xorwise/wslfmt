@@ -30,6 +30,25 @@ wslfmt -l ./...
 wslfmt -d ./...
 ```
 
+## Editor Integration
+
+### VS Code / Cursor
+
+Install the [Run on Save](https://marketplace.visualstudio.com/items?itemName=pucelle.run-on-save) extension, then add to `settings.json`:
+
+```json
+"runOnSave.onlyRunOnManualSave": true,
+"runOnSave.commands": [
+    {
+        "match": ".*\\.go$",
+        "command": "wslfmt -w ${file}",
+        "runIn": "backend"
+    }
+]
+```
+
+`wslfmt` will run automatically every time you manually save a `.go` file.
+
 ## Rules
 
 | Rule | Description |
