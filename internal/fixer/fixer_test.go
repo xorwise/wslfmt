@@ -448,6 +448,30 @@ func f(ch chan int) {
 	testFix(t, "send-cuddle-with-used-var", input, want)
 }
 
+func TestIfNoCuddleWhenVarUsedOnlyInBody(t *testing.T) {
+	// x is assigned by prev but used only in the if body, not the condition.
+	// WSL: "if statements should only be cuddled with assignments used in the if statement itself"
+	input := `package main
+
+func f() {
+	x := 1
+	if y > 0 {
+		_ = x
+	}
+}
+`
+	want := `package main
+
+func f() {
+	x := 1
+
+	if y > 0 {
+		_ = x
+	}
+}`
+	testFix(t, "if-no-cuddle-var-only-in-body", input, want)
+}
+
 func TestSendNoCuddleWithUnrelated(t *testing.T) {
 	input := `package main
 

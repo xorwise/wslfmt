@@ -127,6 +127,88 @@ func usesAnyIdent(stmt dst.Stmt, names []string) bool {
 	return found
 }
 
+// usesAnyIdentInHeader returns true if any of the given names appear in the
+// "header" of a control-flow statement (condition, init, post, tag — not body).
+// For non-control-flow statements, falls back to usesAnyIdent.
+func usesAnyIdentInHeader(stmt dst.Stmt, names []string) bool {
+	if len(names) == 0 {
+		return false
+	}
+	switch s := stmt.(type) {
+	case *dst.IfStmt:
+		var nodes []dst.Node
+		if s.Init != nil {
+			nodes = append(nodes, s.Init)
+		}
+		nodes = append(nodes, s.Cond)
+		return anyNodeUsesIdents(nodes, names)
+	case *dst.ForStmt:
+		var nodes []dst.Node
+		if s.Init != nil {
+			nodes = append(nodes, s.Init)
+		}
+		if s.Cond != nil {
+			nodes = append(nodes, s.Cond)
+		}
+		if s.Post != nil {
+			nodes = append(nodes, s.Post)
+		}
+		return anyNodeUsesIdents(nodes, names)
+	case *dst.RangeStmt:
+		var nodes []dst.Node
+		if s.Key != nil {
+			nodes = append(nodes, s.Key)
+		}
+		if s.Value != nil {
+			nodes = append(nodes, s.Value)
+		}
+		nodes = append(nodes, s.X)
+		return anyNodeUsesIdents(nodes, names)
+	case *dst.SwitchStmt:
+		var nodes []dst.Node
+		if s.Init != nil {
+			nodes = append(nodes, s.Init)
+		}
+		if s.Tag != nil {
+			nodes = append(nodes, s.Tag)
+		}
+		return anyNodeUsesIdents(nodes, names)
+	case *dst.TypeSwitchStmt:
+		var nodes []dst.Node
+		if s.Init != nil {
+			nodes = append(nodes, s.Init)
+		}
+		nodes = append(nodes, s.Assign)
+		return anyNodeUsesIdents(nodes, names)
+	}
+	return usesAnyIdent(stmt, names)
+}
+
+// anyNodeUsesIdents returns true if any of the given names appear in any of the nodes.
+func anyNodeUsesIdents(nodes []dst.Node, names []string) bool {
+	nameSet := make(map[string]bool, len(names))
+	for _, n := range names {
+		nameSet[n] = true
+	}
+	found := false
+	for _, node := range nodes {
+		dst.Inspect(node, func(n dst.Node) bool {
+			if found {
+				return false
+			}
+			if ident, ok := n.(*dst.Ident); ok && nameSet[ident.Name] {
+				found = true
+				return false
+			}
+			return true
+		})
+		if found {
+			return true
+		}
+	}
+	return false
+}
+
 // isErrorCheckIf returns true if stmt is an `if err != nil` or similar error check.
 func isErrorCheckIf(stmt dst.Stmt) bool {
 	ifStmt, ok := stmt.(*dst.IfStmt)

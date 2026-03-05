@@ -54,11 +54,12 @@ func shouldHaveBlankLine(prev, curr dst.Stmt, blockLen int) bool {
 }
 
 // prevAssignsUsedVar returns true if prev assigns or declares at least one variable
-// that is used in curr.
+// that is used in curr. For control-flow statements (if/for/range/switch),
+// only the header (condition/init/tag) is checked, not the body.
 func prevAssignsUsedVar(prev, curr dst.Stmt) bool {
 	prevVars := extractAllVars(prev)
 	if len(prevVars) == 0 {
 		return false
 	}
-	return usesAnyIdent(curr, prevVars)
+	return usesAnyIdentInHeader(curr, prevVars)
 }
